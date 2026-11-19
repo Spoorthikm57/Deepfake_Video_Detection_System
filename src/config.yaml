@@ -1,0 +1,17 @@
+dataset:
+  ffpp_root: "data/raw/FaceForensics++"
+  dfdc_root: "data/raw/DFDC"
+  celebdf_root: "data/raw/Celeb-DF"
+
+training:
+  img_size: 224
+  batch_size: 32
+  epochs: 20
+  learning_rate: 1e-4
+  model: "resnet50"   # options: resnet50, mobilenet_v3, efficientnet_b0
+
+paths:
+  faces_dir: "data/faces"
+  manifests_dir: "data/manifests"
+  checkpoints_dir: "outputs/checkpoints"
+  logs_dir: "outputs/logs"

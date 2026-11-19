@@ -1,0 +1,7 @@
+flask>=2.2,<3
+werkzeug>=2.2,<3
+torch>=2.0,<3
+torchvision>=0.15,<1
+opencv-python>=4.8,<5
+pillow>=10,<11
+numpy>=1.26,<3

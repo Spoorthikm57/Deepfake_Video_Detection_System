@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+env/
+
+# Frontend dependencies
+frontend/node_modules/
+node_modules/
+
+# Build files
+frontend/dist/
+dist/
+build/
+
+# Cache
+.cache/
+.vite/
+frontend/node_modules/.vite/
+
+# Datasets and large video files
+DFDC_Dataset/
+DFDC_Frames_PerVideo/
+Dataset_Split/
+FF++ dataset nd fPv/
+Merged_Frames/
+archive 2/
+data/
+csv/
+
+# Uploaded videos
+uploads/
+src/uploads/
+
+# Generated outputs
+outputs/
+RESULT/
+
+# Model files
+*.h5
+*.keras
+*.pth
+*.pt
+*.onnx
+*.weights
+
+# IDE
+.vscode/
+.idea/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db

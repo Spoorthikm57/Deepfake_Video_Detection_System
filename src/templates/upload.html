@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upload &amp; Analyze Videos</title>
+  <style>
+    body { font-family: Inter, system-ui, Arial, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; }
+    header { padding: 36px 20px; text-align: center; }
+    header h1 { margin: 0; font-size: 28px; font-weight: 700; }
+    header p { margin: 8px 0 0; color: #94a3b8; }
+    main { max-width: 960px; margin: 0 auto; padding: 24px; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 14px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+    .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+    .row > * { flex: 1; min-width: 200px; }
+    .field { margin-bottom: 20px; }
+    .field label { display: block; margin-bottom: 8px; color: #e2e8f0; font-weight: 600; }
+    .btn { background: #2563eb; color: #fff; border: 0; border-radius: 10px; padding: 12px 16px; cursor: pointer; font-weight: 600; }
+    .btn:disabled { background: #475569; cursor: not-allowed; }
+    .muted { color: #94a3b8; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
+    @media (min-width: 720px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .result { background: #0b1220; border: 1px solid #1f2937; border-radius: 12px; padding: 12px 14px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+    .real { background: #064e3b; color: #a7f3d0; }
+    .fake { background: #7f1d1d; color: #fecaca; }
+    .progress { margin-top: 10px; height: 8px; background: #1f2937; border-radius: 999px; overflow: hidden; }
+    .bar { height: 100%; background: linear-gradient(90deg, #22c55e, #ef4444); width: 0; transition: width .2s; }
+    a.back { color: #93c5fd; text-decoration: none; display: inline-block; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Upload &amp; Analyze Videos</h1>
+    <p>Select video files directly from your PC to analyze them.</p>
+  </header>
+  <main>
+    <div class="card">
+      <div class="field">
+        <label for="files">Choose video file(s)</label>
+        <input type="file" id="files" multiple accept="video/*" />
+        <div id="fileSelection" class="muted"></div>
+      </div>
+
+      <div class="row">
+        <button id="analyze" class="btn" disabled>Analyze</button>
+      </div>
+
+      <div class="progress"><div id="bar" class="bar"></div></div>
+      <div id="results" class="grid"></div>
+      <a class="back" href="/">← Back to Home</a>
+    </div>
+  </main>
+  <script>
+    const input = document.getElementById('files');
+    const fileSelection = document.getElementById('fileSelection');
+    const btn = document.getElementById('analyze');
+    const results = document.getElementById('results');
+    const bar = document.getElementById('bar');
+    function isVideoFile(file) {
+      return file.type.startsWith('video/') || /\.(mp4|mov|avi|mkv|webm|m4v)$/i.test(file.name);
+    }
+
+    input.addEventListener('change', () => {
+      const selected = Array.from(input.files || []).filter(isVideoFile);
+      fileSelection.textContent = selected.length ? `${selected.length} video(s) selected.` : '';
+      btn.disabled = selected.length === 0;
+    });
+
+    btn.addEventListener('click', async () => {
+      const selectedFiles = Array.from(input.files || []).filter(isVideoFile);
+
+      if (selectedFiles.length === 0) {
+        alert('Select at least one video.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Analyzing...';
+      results.replaceChildren();
+      const loading = document.createElement('p');
+      loading.textContent = 'Your video is being processed. This may take several minutes...';
+      results.appendChild(loading);
+      bar.style.width = '0%';
+
+      const form = new FormData();
+      selectedFiles.forEach(file => {
+        form.append('files', file);
+        form.append('relative_paths', file.webkitRelativePath || '');
+      });
+
+      try {
+        const response = await fetch('/predict-multi', { method: 'POST', body: form });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Video analysis failed.');
+
+        results.replaceChildren();
+        const list = data.results || [];
+        list.forEach((result, index) => {
+          const div = document.createElement('div');
+          div.className = 'result';
+          if (result.error) {
+            const error = document.createElement('p');
+            error.textContent = result.error;
+            div.appendChild(error);
+          } else {
+            const heading = document.createElement('div');
+            heading.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;';
+            const filename = document.createElement('strong');
+            filename.textContent = result.filename || 'video';
+            const label = result.prediction || 'UNKNOWN';
+            const badge = document.createElement('span');
+            badge.className = `badge ${label === 'REAL' ? 'real' : 'fake'}`;
+            badge.textContent = `PREDICTION: ${label}`;
+            heading.append(filename, badge);
+            div.appendChild(heading);
+
+            const source = document.createElement('p');
+            source.className = 'muted';
+            source.textContent = `Classification source: ${result.classification_source || 'AI Model'}`;
+            div.appendChild(source);
+            if (typeof result.confidence === 'number') {
+              const confidence = document.createElement('p');
+              confidence.className = 'muted';
+              confidence.textContent = `Confidence: ${(result.confidence * 100).toFixed(1)}%`;
+              div.appendChild(confidence);
+            }
+          }
+          results.appendChild(div);
+          bar.style.width = `${Math.round(((index + 1) / list.length) * 100)}%`;
+        });
+      } catch (error) {
+        results.replaceChildren();
+        const message = document.createElement('p');
+        message.textContent = `An unexpected error occurred: ${error.message}`;
+        results.appendChild(message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Analyze';
+        btn.disabled = !Array.from(input.files || []).some(isVideoFile);
+      }
+    });
+  </script>
+</body>
+</html>

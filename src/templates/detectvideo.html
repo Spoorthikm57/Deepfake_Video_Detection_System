@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Predict Video</title>
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to right, #fdfbfb, #ebedee);
+    margin: 0;
+    padding: 0;
+}
+.container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 30px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+}
+h1 {
+    text-align: center;
+    color: #333;
+}
+.upload-box {
+    text-align: center;
+    margin-top: 30px;
+}
+input[type=file] {
+    margin-top: 15px;
+}
+button {
+    margin-top: 20px;
+    padding: 12px 25px;
+    background: #4e9af1;
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+button:hover {
+    background: #3a7ed0;
+}
+.result {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    border-radius: 12px;
+    background: #f0f4f8;
+    display: none;
+}
+.result h2 {
+    font-size: 28px;
+    color: #333;
+}
+.result p {
+    font-size: 18px;
+    color: #555;
+}
+.status {
+    text-align: center;
+    font-size: 16px;
+    color: #666;
+    margin-top: 15px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Predict Video</h1>
+<div class="upload-box">
+<input type="file" id="videoInput" accept="video/*">
+<br>
+<button id="predictBtn">Predict Video</button>
+</div>
+<div class="status" id="statusText"></div>
+<div class="result" id="resultBox">
+<h2 id="finalLabel"></h2>
+<p id="frameInfo"></p>
+</div>
+</div>
+
+<script>
+const videoInput = document.getElementById("videoInput");
+const predictBtn = document.getElementById("predictBtn");
+const statusText = document.getElementById("statusText");
+const resultBox = document.getElementById("resultBox");
+const finalLabel = document.getElementById("finalLabel");
+const frameInfo = document.getElementById("frameInfo");
+
+predictBtn.addEventListener("click", () => {
+    const file = videoInput.files[0];
+    if(!file) { alert("Select a video first"); return; }
+
+    const formData = new FormData();
+    formData.append("video", file);
+
+    predictBtn.disabled = true;
+    statusText.textContent = "Analyzing video, please wait...";
+    resultBox.style.display = "none";
+
+    fetch("/predict", { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if(data.error){
+                statusText.textContent = "Error: " + data.error;
+                predictBtn.disabled = false;
+                return;
+            }
+            finalLabel.textContent = "Final Video Label: " + data.final_label;
+            frameInfo.textContent = `REAL Frames: ${data.real_frames} | FAKE Frames: ${data.fake_frames} | Total Frames: ${data.total_frames}`;
+            resultBox.style.display = "block";
+            statusText.textContent = "Analysis complete.";
+            predictBtn.disabled = false;
+        })
+        .catch(err => {
+            statusText.textContent = "Error: " + err;
+            predictBtn.disabled = false;
+        });
+});
+</script>
+</body>
+</html>
